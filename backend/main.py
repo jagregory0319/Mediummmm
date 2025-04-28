@@ -4,13 +4,15 @@ import base64
 import requests
 from random import shuffle, choice
 from typing import List
-from fastapi import FastAPI, HTTPException, Header
+
+from fastapi import FastAPI, HTTPException, Header, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from dotenv import load_dotenv
 from supabase import create_client, Client as SupabaseClient
-from fastapi import Depends
 
+from openai import OpenAI
+from openai.types import ChatCompletionRequestMessage
 
 # ─── Load environment ──────────────────────────────────────────────────────────
 load_dotenv()
@@ -21,8 +23,7 @@ SPOTIFY_CLIENT_SECRET = os.getenv("SPOTIFY_CLIENT_SECRET")
 SUPABASE_URL          = os.getenv("SUPABASE_URL")
 SUPABASE_ANON_KEY     = os.getenv("SUPABASE_ANON_KEY")
 SUPABASE_SERVICE_KEY  = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
-OLLAMA_URL            = os.getenv("OLLAMA_URL", "https://ollama-service-pxo3vw.fly.dev")
-OLLAMA_MODEL          = os.getenv("OLLAMA_MODEL", "gemma3:1b-it-qat")
+OPENAI_API_KEY        = os.getenv("OPENAI_API_KEY")
 
 for var, name in [
     (LASTFM_API_KEY,        "LASTFM_API_KEY"),
@@ -31,6 +32,7 @@ for var, name in [
     (SUPABASE_URL,          "SUPABASE_URL"),
     (SUPABASE_ANON_KEY,     "SUPABASE_ANON_KEY"),
     (SUPABASE_SERVICE_KEY,  "SUPABASE_SERVICE_ROLE_KEY"),
+    (OPENAI_API_KEY,        "OPENAI_API_KEY"),
 ]:
     if not var:
         raise RuntimeError(f"Missing {name} in .env")
@@ -39,25 +41,26 @@ for var, name in [
 supabase_db   = create_client(SUPABASE_URL, SUPABASE_SERVICE_KEY)
 supabase_auth = create_client(SUPABASE_URL, SUPABASE_ANON_KEY)
 
+# ─── OpenAI client setup ───────────────────────────────────────────────────────
+client = OpenAI(api_key=OPENAI_API_KEY)
+
 # ─── FastAPI setup ────────────────────────────────────────────────────────────
 app = FastAPI()
 
 FRONTEND_ORIGINS = [
-    "https://ollama-service-pxo3vw.fly.dev",                   
-    "https://mediummmm.vercel.app",            
-    "https://mediummmm.onrender.com",          
+    "https://mediummmm.vercel.app",
+    "https://mediummmm.onrender.com",
 ]
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=FRONTEND_ORIGINS,
     allow_credentials=True,
-    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allow_methods=["*"],
     allow_headers=["*"],
 )
 
 # ─── Pydantic models ──────────────────────────────────────────────────────────
-
 class Prompt(BaseModel):
     prompt: str
 
@@ -74,7 +77,6 @@ class TastePayload(BaseModel):
     taste: str  # "like" or "dislike"
 
 # ─── Helpers ─────────────────────────────────────────────────────────────────
-
 def get_spotify_token() -> str:
     creds = base64.b64encode(f"{SPOTIFY_CLIENT_ID}:{SPOTIFY_CLIENT_SECRET}".encode()).decode()
     r = requests.post(
@@ -86,17 +88,7 @@ def get_spotify_token() -> str:
         raise HTTPException(500, "Failed to fetch Spotify token")
     return r.json()["access_token"]
 
-def get_spotify_token_header(authorization: str = Header(None)) -> str:
-    if not authorization:
-        raise HTTPException(401, "Missing Spotify Authorization header")
-    scheme, token = authorization.split(" ", 1)
-    if scheme.lower() != "bearer" or not token:
-        raise HTTPException(401, "Invalid Authorization header")
-    return token
-
-def get_user_spotify_token(
-    authorization: str = Header(None)
-) -> str:
+def get_user_spotify_token(authorization: str = Header(None)) -> str:
     if not authorization:
         raise HTTPException(401, "Missing Authorization header")
     parts = authorization.split(" ", 1)
@@ -114,23 +106,22 @@ def ai_search(req: Prompt):
         "No numbering or extra commentary."
     )
 
-    # 1) Call Ollama's chat completion endpoint
-    chat_url = f"{OLLAMA_URL}/api/chat"
-    payload = {
-        "model": OLLAMA_MODEL,
-        "messages": [
-            {"role": "system", "content": system_prompt},
-            {"role": "user",   "content": req.prompt}
-        ]
-    }
-    r = requests.post(chat_url, json=payload, headers={"Content-Type": "application/json"})
-    if r.status_code != 200:
-        raise HTTPException(502, f"Ollama error {r.status_code}: {r.text}")
+    messages: List[ChatCompletionRequestMessage] = [
+        {"role": "system", "content": system_prompt},
+        {"role": "user",   "content": req.prompt}
+    ]
 
-    content = r.json()["choices"][0]["message"]["content"]
+    try:
+        completion = client.chat.completions.create(
+            model="gpt-3.5-turbo",
+            messages=messages
+        )
+    except Exception as e:
+        raise HTTPException(502, f"OpenAI error: {e}")
+
+    content = completion.choices[0].message.content
     lines = [l.strip() for l in content.splitlines() if l.strip()]
 
-    # 2) For each of the first 10 lines, look up on Spotify
     token = get_spotify_token()
     out = []
     for line in lines[:10]:
@@ -144,7 +135,6 @@ def ai_search(req: Prompt):
             headers={"Authorization": f"Bearer {token}"},
             params={"q": f'track:"{name}" artist:"{artist}"', "type": "track", "limit": 1}
         )
-
         items = search.json().get("tracks", {}).get("items", []) if search.ok else []
         if not items:
             continue
@@ -194,7 +184,6 @@ def explore_songs():
             if not name or not artist:
                 continue
 
-            # Spotify lookup just for artwork and id
             sp_res = requests.get(
                 "https://api.spotify.com/v1/search",
                 headers={"Authorization": f"Bearer {token}"},
@@ -205,7 +194,6 @@ def explore_songs():
                 continue
             sp = items[0]
 
-            # DEEZER preview only
             preview_url = None
             dz = requests.get(
                 "https://api.deezer.com/search",
@@ -221,11 +209,10 @@ def explore_songs():
                 "id":          sp["id"],
                 "title":       sp["name"],
                 "artist":      sp["artists"][0]["name"],
-                "preview_url": preview_url,                # only Deezer
+                "preview_url": preview_url,
                 "artwork_url": sp["album"]["images"][0]["url"],
                 "genres":      []
             })
-
             if len(output) >= 50:
                 break
 
@@ -344,6 +331,7 @@ def top_artists(
         raise HTTPException(resp.status_code, "Spotify error fetching top artists")
     return {"artists": resp.json().get("items", [])}
 
+
 @app.get("/top-tracks")
 def top_tracks(
     limit: int = 5,
@@ -361,3 +349,4 @@ def top_tracks(
     if not resp.ok:
         raise HTTPException(resp.status_code, "Spotify error fetching top tracks")
     return {"tracks": resp.json().get("items", [])}
+
