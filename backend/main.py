@@ -115,7 +115,7 @@ def ai_search(req: Prompt):
     )
 
     # 1) Call Ollama's chat completion endpoint
-    chat_url = f"{OLLAMA_URL}/v1/chat/completions"
+    chat_url = f"{OLLAMA_URL}/api/chat"
     payload = {
         "model": OLLAMA_MODEL,
         "messages": [
