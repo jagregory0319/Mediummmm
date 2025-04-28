@@ -21,7 +21,7 @@ SPOTIFY_CLIENT_SECRET = os.getenv("SPOTIFY_CLIENT_SECRET")
 SUPABASE_URL          = os.getenv("SUPABASE_URL")
 SUPABASE_ANON_KEY     = os.getenv("SUPABASE_ANON_KEY")
 SUPABASE_SERVICE_KEY  = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
-OLLAMA_URL            = os.getenv("OLLAMA_URL", "http://localhost:11436")
+OLLAMA_URL            = os.getenv("OLLAMA_URL", "https://ollama-service-pxo3vw.fly.dev")
 OLLAMA_MODEL          = os.getenv("OLLAMA_MODEL", "gemma3:1b-it-qat")
 
 for var, name in [
