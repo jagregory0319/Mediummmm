@@ -11,7 +11,8 @@ from pydantic import BaseModel
 from dotenv import load_dotenv
 from supabase import create_client, Client as SupabaseClient
 
-from openai import OpenAI
+import openai
+
 
 
 # ─── Load environment ──────────────────────────────────────────────────────────
@@ -112,7 +113,7 @@ def ai_search(req: Prompt):
     ]
 
     try:
-        completion = client.chat.completions.create(
+        completion = openai.ChatCompletion.create(
             model="gpt-3.5-turbo",
             messages=messages
         )
