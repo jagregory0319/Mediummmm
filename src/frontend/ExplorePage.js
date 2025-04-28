@@ -24,6 +24,7 @@ import {
   Person as PersonIcon,
   Save as SaveIcon
 } from '@mui/icons-material'
+const API = process.env.REACT_APP_API;
 
 export default function ExplorePage() {
   const navigate     = useNavigate()
@@ -43,7 +44,7 @@ export default function ExplorePage() {
 
   async function loadTracks() {
     setLoading(true)
-    const res = await fetch('http://localhost:8000/explore-songs')
+    const res = await fetch(`${API}/explore-songs`)
     const data = await res.json()
     setTracks(prev => [...prev, ...(data.tracks || [])])
     setLoading(false)
@@ -83,7 +84,7 @@ export default function ExplorePage() {
       setMsg('Log in to Spotify to save')
       return
     }
-    const res = await fetch('http://localhost:8000/save-tracks', {
+    const res = await fetch(`${API}/save-tracks`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
