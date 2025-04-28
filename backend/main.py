@@ -41,11 +41,18 @@ supabase_auth = create_client(SUPABASE_URL, SUPABASE_ANON_KEY)
 
 # ─── FastAPI setup ────────────────────────────────────────────────────────────
 app = FastAPI()
+
+FRONTEND_ORIGINS = [
+    "http://localhost:3000",                   
+    "https://mediummmm.vercel.app",            
+    "https://mediummmm.onrender.com",          
+]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000",
-                  https://mediummmm.onrender.com],
-    allow_methods=["*"],
+    allow_origins=FRONTEND_ORIGINS,
+    allow_credentials=True,
+    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allow_headers=["*"],
 )
 
