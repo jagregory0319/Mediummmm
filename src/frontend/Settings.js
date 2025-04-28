@@ -20,6 +20,7 @@ import BottomNavigationAction from '@mui/material/BottomNavigationAction';
 import HomeIcon from '@mui/icons-material/Home';
 import ExploreIcon from '@mui/icons-material/Explore';
 import SettingsIcon from '@mui/icons-material/Settings';
+const API = process.env.REACT_APP_API;
 
 export default function Settings() {
   const [darkMode, setDarkMode]           = useState(false);
@@ -48,7 +49,7 @@ export default function Settings() {
       try {
         // Top 4 Artists
         const aRes = await fetch(
-          'http://localhost:8000/top-artists?limit=4&time_range=medium_term',
+          `${API}//top-artists?limit=4&time_range=medium_term`,
           { headers }
         );
         if (!aRes.ok) throw new Error('Could not fetch top artists');
@@ -57,7 +58,7 @@ export default function Settings() {
 
         // Top 4 Tracks
         const tRes = await fetch(
-          'http://localhost:8000/top-tracks?limit=4&time_range=medium_term',
+          `${API}//top-tracks?limit=4&time_range=medium_term`,
           { headers }
         );
         if (!tRes.ok) throw new Error('Could not fetch top tracks');
