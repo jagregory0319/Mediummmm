@@ -114,7 +114,7 @@ def ai_search(req: Prompt):
         "No numbering or extra commentary."
     )
     r = requests.post(
-        f"{OLLAMA_URL.rstrip('/')}/v1/chat/completions",
+        f"{OLLAMA_URL.rstrip('/')}/v1/completions",
         json={"model": OLLAMA_MODEL, "messages": [
             {"role": "system", "content": system_prompt},
             {"role": "user",   "content": req.prompt}
