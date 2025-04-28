@@ -18,6 +18,7 @@ import {
 import { Search, Explore, Person, Save as SaveIcon } from '@mui/icons-material'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useNavigate } from 'react-router-dom'
+const API = process.env.REACT_APP_API;
 
 export default function MainPage() {
   const [q, setQ]                   = useState('')
@@ -42,7 +43,7 @@ export default function MainPage() {
       .then(r => r.ok ? r.json() : Promise.reject())
       .then(user => {
         setProfile(user)
-        return fetch('http://localhost:8000/recommendations', {
+        return fetch(`${API}/recommendations`, {
           headers: { Authorization: `Bearer ${tok}` }
         })
       })
@@ -53,7 +54,7 @@ export default function MainPage() {
 
   const doSearch = async () => {
     if (!q.trim()) return
-    const res = await fetch('http://localhost:8000/ai-search', {
+    const res = await fetch(`${API}/ai-search`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ prompt: q })
@@ -73,7 +74,7 @@ export default function MainPage() {
       return
     }
     setSaving(true)
-    const res = await fetch('http://localhost:8000/save-tracks', {
+    const res = await fetch(`${API}/save-tracks`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
