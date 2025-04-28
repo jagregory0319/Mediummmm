@@ -113,19 +113,24 @@ def ai_search(req: Prompt):
         "each on its own line, in the format: Song Title by Artist Name. "
         "No numbering or extra commentary."
     )
-    r = requests.post(
-        f"{OLLAMA_URL.rstrip('/')}/v1/completions",
-        json={"model": OLLAMA_MODEL, "messages": [
+
+    # 1) Call Ollama's chat completion endpoint
+    chat_url = f"{OLLAMA_URL}/v1/chat/completions"
+    payload = {
+        "model": OLLAMA_MODEL,
+        "messages": [
             {"role": "system", "content": system_prompt},
             {"role": "user",   "content": req.prompt}
-        ]},
-        headers={"Content-Type": "application/json"}
-    )
+        ]
+    }
+    r = requests.post(chat_url, json=payload, headers={"Content-Type": "application/json"})
     if r.status_code != 200:
         raise HTTPException(502, f"Ollama error {r.status_code}: {r.text}")
+
     content = r.json()["choices"][0]["message"]["content"]
     lines = [l.strip() for l in content.splitlines() if l.strip()]
 
+    # 2) For each of the first 10 lines, look up on Spotify
     token = get_spotify_token()
     out = []
     for line in lines[:10]:
@@ -133,21 +138,26 @@ def ai_search(req: Prompt):
         if not m:
             continue
         name, artist = m.group(1).strip(), m.group(2).strip()
+
         search = requests.get(
             "https://api.spotify.com/v1/search",
             headers={"Authorization": f"Bearer {token}"},
             params={"q": f'track:"{name}" artist:"{artist}"', "type": "track", "limit": 1}
         )
+
         items = search.json().get("tracks", {}).get("items", []) if search.ok else []
-        if items:
-            t = items[0]
-            out.append({
-                "id":      t["id"],
-                "name":    t["name"],
-                "artist":  t["artists"][0]["name"],
-                "preview": t["preview_url"],
-                "image":   t["album"]["images"][0]["url"]
-            })
+        if not items:
+            continue
+
+        t = items[0]
+        out.append({
+            "id":      t["id"],
+            "name":    t["name"],
+            "artist":  t["artists"][0]["name"],
+            "preview": t["preview_url"],
+            "image":   t["album"]["images"][0]["url"]
+        })
+
     return {"tracks": out}
 
 
