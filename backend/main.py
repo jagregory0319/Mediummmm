@@ -12,7 +12,7 @@ from dotenv import load_dotenv
 from supabase import create_client, Client as SupabaseClient
 
 from openai import OpenAI
-from openai.types import ChatCompletionRequestMessage
+
 
 # ─── Load environment ──────────────────────────────────────────────────────────
 load_dotenv()
@@ -42,7 +42,7 @@ supabase_db   = create_client(SUPABASE_URL, SUPABASE_SERVICE_KEY)
 supabase_auth = create_client(SUPABASE_URL, SUPABASE_ANON_KEY)
 
 # ─── OpenAI client setup ───────────────────────────────────────────────────────
-client = OpenAI(api_key=OPENAI_API_KEY)
+openai.api_key = OPENAI_API_KEY
 
 # ─── FastAPI setup ────────────────────────────────────────────────────────────
 app = FastAPI()
