@@ -113,9 +113,9 @@ export default function MainPage() {
             fontSize: { xs: '2.5rem', sm: '3rem', md: '4rem' },
             color: 'primary.main',
             lineHeight: 1,
-            WebkitTextStrokeWidth: '1px',
+            WebkitTextStrokeWidth: '2px',
             WebkitTextStrokeColor: '#000',     // black outline
-            textStrokeWidth: '1px',            // for non-webkit browsers
+            textStrokeWidth: '2px',            // for non-webkit browsers
             textStrokeColor: '#000'
           }}
         >
