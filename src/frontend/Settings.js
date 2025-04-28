@@ -49,7 +49,7 @@ export default function Settings() {
       try {
         // Top 4 Artists
         const aRes = await fetch(
-          `${API}//top-artists?limit=4&time_range=medium_term`,
+          `${API}/top-artists?limit=4&time_range=medium_term`,
           { headers }
         );
         if (!aRes.ok) throw new Error('Could not fetch top artists');
@@ -58,7 +58,7 @@ export default function Settings() {
 
         // Top 4 Tracks
         const tRes = await fetch(
-          `${API}//top-tracks?limit=4&time_range=medium_term`,
+          `${API}/top-tracks?limit=4&time_range=medium_term`,
           { headers }
         );
         if (!tRes.ok) throw new Error('Could not fetch top tracks');
