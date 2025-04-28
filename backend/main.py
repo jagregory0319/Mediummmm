@@ -43,7 +43,7 @@ supabase_auth = create_client(SUPABASE_URL, SUPABASE_ANON_KEY)
 app = FastAPI()
 
 FRONTEND_ORIGINS = [
-    "http://localhost:3000",                   
+    "https://ollama-service-pxo3vw.fly.dev",                   
     "https://mediummmm.vercel.app",            
     "https://mediummmm.onrender.com",          
 ]
