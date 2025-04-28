@@ -43,7 +43,8 @@ supabase_auth = create_client(SUPABASE_URL, SUPABASE_ANON_KEY)
 app = FastAPI()
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],
+    allow_origins=["http://localhost:3000",
+                  https://mediummmm.onrender.com],
     allow_methods=["*"],
     allow_headers=["*"],
 )
