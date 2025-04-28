@@ -112,7 +112,7 @@ export default function MainPage() {
             fontWeight: 900,
             fontSize: { xs: '2.5rem', sm: '3rem', md: '4rem' },
             color: 'primary.main',
-            lineHeight: 1
+            lineHeight: 1,
             WebkitTextStrokeWidth: '1px',
             WebkitTextStrokeColor: '#000',     // black outline
             textStrokeWidth: '1px',            // for non-webkit browsers
