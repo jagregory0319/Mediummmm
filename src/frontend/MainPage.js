@@ -133,7 +133,7 @@ export default function MainPage() {
               const p = new URLSearchParams({
                 client_id: 'c405f1798c6c4b7aab5f82af26556d64',
                 response_type: 'token',
-                redirect_uri: 'window.location.origin + '/main'',
+                redirect_uri: `${window.location.origin}/main`,
                 scope: 'user-library-modify user-read-private user-top-read'
               })
               window.location.href = `https://accounts.spotify.com/authorize?${p}`
