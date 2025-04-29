@@ -13,8 +13,6 @@ from supabase import create_client, Client as SupabaseClient
 
 import openai
 
-
-
 # ─── Load environment ──────────────────────────────────────────────────────────
 load_dotenv()
 
@@ -89,6 +87,18 @@ def get_spotify_token() -> str:
         raise HTTPException(500, "Failed to fetch Spotify token")
     return r.json()["access_token"]
 
+def get_deezer_preview(track_name: str, artist: str) -> str | None:
+    """Query Deezer search API and return the first preview URL, if any."""
+    dz = requests.get(
+        "https://api.deezer.com/search",
+        params={"q": f"{track_name} {artist}"}
+    )
+    if dz.ok:
+        for itm in dz.json().get("data", []):
+            if itm.get("preview"):
+                return itm["preview"]
+    return None
+
 def get_user_spotify_token(authorization: str = Header(None)) -> str:
     if not authorization:
         raise HTTPException(401, "Missing Authorization header")
@@ -98,7 +108,6 @@ def get_user_spotify_token(authorization: str = Header(None)) -> str:
     return parts[1]
 
 # ─── Endpoints ────────────────────────────────────────────────────────────────
-
 @app.post("/ai-search")
 def ai_search(req: Prompt):
     system_prompt = (
@@ -107,7 +116,7 @@ def ai_search(req: Prompt):
         "No numbering or extra commentary."
     )
 
-    messages: List[ChatCompletionRequestMessage] = [
+    messages = [
         {"role": "system", "content": system_prompt},
         {"role": "user",   "content": req.prompt}
     ]
@@ -120,32 +129,37 @@ def ai_search(req: Prompt):
     except Exception as e:
         raise HTTPException(502, f"OpenAI error: {e}")
 
-    content = completion.choices[0].message.content
-    lines = [l.strip() for l in content.splitlines() if l.strip()]
-
+    lines = [l.strip() for l in completion.choices[0].message.content.splitlines() if l.strip()]
     token = get_spotify_token()
     out = []
+
     for line in lines[:10]:
         m = re.match(r"(.+?)\s*(?:by|-)\s*(.+)", line, flags=re.IGNORECASE)
         if not m:
             continue
         name, artist = m.group(1).strip(), m.group(2).strip()
 
-        search = requests.get(
+        # Spotify lookup
+        sp_res = requests.get(
             "https://api.spotify.com/v1/search",
             headers={"Authorization": f"Bearer {token}"},
             params={"q": f'track:"{name}" artist:"{artist}"', "type": "track", "limit": 1}
         )
-        items = search.json().get("tracks", {}).get("items", []) if search.ok else []
+        if not sp_res.ok:
+            continue
+        items = sp_res.json().get("tracks", {}).get("items", [])
         if not items:
             continue
 
         t = items[0]
+        spotify_preview = t.get("preview_url")
+        deezer_preview  = get_deezer_preview(name, artist)
+
         out.append({
             "id":      t["id"],
             "name":    t["name"],
             "artist":  t["artists"][0]["name"],
-            "preview": t["preview_url"],
+            "preview": deezer_preview or spotify_preview,
             "image":   t["album"]["images"][0]["url"]
         })
 
@@ -193,24 +207,16 @@ def explore_songs():
             items = sp_res.json().get("tracks", {}).get("items", []) if sp_res.ok else []
             if not items:
                 continue
-            sp = items[0]
 
-            preview_url = None
-            dz = requests.get(
-                "https://api.deezer.com/search",
-                params={"q": f"{name} {artist}"}
-            )
-            if dz.ok:
-                for itm in dz.json().get("data", []):
-                    if itm.get("preview"):
-                        preview_url = itm["preview"]
-                        break
+            sp = items[0]
+            spotify_preview = sp.get("preview_url")
+            deezer_preview  = get_deezer_preview(name, artist)
 
             output.append({
                 "id":          sp["id"],
                 "title":       sp["name"],
                 "artist":      sp["artists"][0]["name"],
-                "preview_url": preview_url,
+                "preview_url": deezer_preview or spotify_preview,
                 "artwork_url": sp["album"]["images"][0]["url"],
                 "genres":      []
             })
@@ -292,22 +298,27 @@ def get_recommendations():
         name, artist = t.get("name"), t.get("artist", {}).get("name")
         if not name or not artist:
             continue
-        search = requests.get(
+
+        sp_res = requests.get(
             "https://api.spotify.com/v1/search",
             headers={"Authorization": f"Bearer {token}"},
             params={"q": f'track:"{name}" artist:"{artist}"', "type": "track", "limit": 1}
         )
-        if not search.ok:
+        if not sp_res.ok:
             continue
-        items = search.json().get("tracks", {}).get("items", [])
+        items = sp_res.json().get("tracks", {}).get("items", [])
         if not items:
             continue
+
         sp = items[0]
+        spotify_preview = sp.get("preview_url")
+        deezer_preview  = get_deezer_preview(name, artist)
+
         recs.append({
             "id":           sp["id"],
             "title":        sp["name"],
             "artist":       sp["artists"][0]["name"],
-            "preview_url":  sp.get("preview_url"),
+            "preview_url":  deezer_preview or spotify_preview,
             "artwork_url":  sp["album"]["images"][0]["url"] if sp["album"]["images"] else None
         })
 
@@ -350,4 +361,3 @@ def top_tracks(
     if not resp.ok:
         raise HTTPException(resp.status_code, "Spotify error fetching top tracks")
     return {"tracks": resp.json().get("items", [])}
-
