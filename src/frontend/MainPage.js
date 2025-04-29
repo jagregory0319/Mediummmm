@@ -112,11 +112,7 @@ export default function MainPage() {
             fontWeight: 900,
             fontSize: { xs: '2.5rem', sm: '3rem', md: '4rem' },
             color: 'primary.main',
-            lineHeight: 1,
-            WebkitTextStrokeWidth: '2px',
-            WebkitTextStrokeColor: '#000',     // black outline
-            textStrokeWidth: '2px',            // for non-webkit browsers
-            textStrokeColor: '#000'
+            lineHeight: 1
           }}
         >
           MediUMMMM
