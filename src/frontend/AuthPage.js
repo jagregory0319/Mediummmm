@@ -16,7 +16,7 @@ const AuthPage = () => {
     <Container maxWidth="xs" sx={{ display: "flex", justifyContent: "center", alignItems: "center", height: "100vh" }}>
       <Card sx={{ p: 4, width: "100%", textAlign: "center", boxShadow: 3 }}>
         <Typography variant="h4" fontWeight="bold" gutterBottom>
-          MediUMM
+          MediUMMMM
         </Typography>
         {isLogin ? <Login /> : <Signup />}
         <Box mt={2}>
