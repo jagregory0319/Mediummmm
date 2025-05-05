@@ -20,6 +20,7 @@ MediUMM is a music recommendation system that allows users to discover new track
 * [Frontend Pages](#frontend-pages)
 * [Contribution](#contribution)
 * [License](#license)
+* [Contact](#contact)
 
 ## Installation
 
