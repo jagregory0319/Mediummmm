@@ -129,3 +129,6 @@ Contributions are welcome! Please follow these steps:
 4. Push to the branch: `git push origin feature/YourFeature`
 5. Open a Pull Request
 
+## Contact
+Reach out at jag303@uakron.edu for any questions and to inquire about access to live link. 
+
